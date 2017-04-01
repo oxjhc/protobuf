@@ -1,18 +1,19 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DeriveFoldable #-}
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DeriveTraversable #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE DeriveFoldable             #-}
+{-# LANGUAGE DeriveFunctor              #-}
+{-# LANGUAGE DeriveTraversable          #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeFamilyDependencies     #-}
 
 module Data.ProtocolBuffers.Types
   ( Field(..)
   , HasField(..)
-  , Required
+  , Required(..)
   , RequiredField(..)
-  , Optional
+  , Optional(..)
   , OptionalField(..)
   , Repeated
   , RepeatedField(..)
@@ -26,14 +27,14 @@ module Data.ProtocolBuffers.Types
   , PackedField(..)
   ) where
 
-import Control.DeepSeq (NFData)
-import Data.Bits
-import Data.Foldable as Fold
-import Data.Monoid
-import Data.Traversable
-import Data.Typeable
+import           Control.DeepSeq  (NFData)
+import           Data.Bits
+import           Data.Foldable    as Fold
+import           Data.Monoid
+import           Data.Traversable
+import           Data.Typeable
 
-import GHC.TypeLits
+import           GHC.TypeLits
 
 -- |
 -- 'Value' selects the normal/typical way for encoding scalar (primitive) values.
@@ -109,28 +110,28 @@ class HasField a where
   field f = fmap putField . f . getField
 
 -- | Iso: @ 'FieldType' ('Required' n ('Value' a)) = a @
-instance HasField (Field n (RequiredField (Always (Value a)))) where
-  type FieldType (Field n (RequiredField (Always (Value a)))) = a
-  getField = runValue . runAlways . runRequired . runField
-  putField = Field . Required . Always . Value
+instance HasField (Required n (Value a)) where
+  type FieldType (Required n (Value a)) = a
+  getField = runValue . runAlways . runRequired . runField . unRV
+  putField = RV . Field . Required . Always . Value
 
 -- | Iso: @ 'FieldType' ('Required' n ('Enumeration' a)) = a @
-instance HasField (Field n (RequiredField (Always (Enumeration a)))) where
-  type FieldType (Field n (RequiredField (Always (Enumeration a)))) = a
-  getField = runEnumeration . runAlways . runRequired . runField
-  putField = Field . Required . Always . Enumeration
+instance HasField (Required n (Enumeration a)) where
+  type FieldType (Required n (Enumeration a)) = a
+  getField = runEnumeration . runAlways . runRequired . runField . unRE
+  putField = RE . Field . Required . Always . Enumeration
 
 -- | Iso: @ 'FieldType' ('Optional' n ('Value' a)) = 'Maybe' a @
-instance HasField (Field n (OptionalField (Last (Value a)))) where
-  type FieldType (Field n (OptionalField (Last (Value a)))) = Maybe a
-  getField = fmap runValue . getLast . runOptional . runField
-  putField = Field . Optional . Last . fmap Value
+instance HasField (Optional n (Value a)) where
+  type FieldType (Optional n (Value a)) = Maybe a
+  getField = fmap runValue . getLast . runOptional . runField . unOV
+  putField = OV . Field . Optional . Last . fmap Value
 
 -- | Iso: @ 'FieldType' ('Optional' n ('Enumeration' a)) = 'Maybe' a @
-instance HasField (Field n (OptionalField (Last (Enumeration a)))) where
-  type FieldType (Field n (OptionalField (Last (Enumeration a)))) = Maybe a
-  getField = fmap runEnumeration . getLast . runOptional . runField
-  putField = Field . Optional . Last . fmap Enumeration
+instance HasField (Optional n (Enumeration a)) where
+  type FieldType (Optional n (Enumeration a)) = Maybe a
+  getField = fmap runEnumeration . getLast . runOptional . runField . unOE
+  putField = OE . Field . Optional . Last . fmap Enumeration
 
 -- | Iso: @ 'FieldType' ('Repeated' n ('Value' a)) = [a] @
 instance HasField (Field n (RepeatedField [Value a])) where
@@ -157,14 +158,18 @@ instance HasField (Field n (PackedField (PackedList (Enumeration a)))) where
   putField = Field . PackedField . PackedList . fmap Enumeration
 
 -- | Optional fields. Values that are not found will return 'Nothing'.
-type family Optional (n :: Nat) (a :: *) :: *
-type instance Optional n (Value a)       = Field n (OptionalField (Last (Value a)))
-type instance Optional n (Enumeration a) = Field n (OptionalField (Last (Enumeration a)))
+data family Optional (n :: Nat) (a :: *)
+newtype instance Optional n (Value a)       = OV {unOV :: Field n (OptionalField (Last (Value a)))}
+  deriving (Eq, Monoid, Ord, NFData, Show, Typeable)
+newtype instance Optional n (Enumeration a) = OE {unOE :: Field n (OptionalField (Last (Enumeration a)))}
+  deriving (Eq, Monoid, Ord, NFData, Show, Typeable)
 
 -- | Required fields. Parsing will return 'Control.Alternative.empty' if a 'Required' value is not found while decoding.
-type family Required (n :: Nat) (a :: *) :: *
-type instance Required n (Value a)       = Field n (RequiredField (Always (Value a)))
-type instance Required n (Enumeration a) = Field n (RequiredField (Always (Enumeration a)))
+data family Required (n :: Nat) (a :: *)
+newtype instance Required n (Value a)       = RV {unRV :: Field n (RequiredField (Always (Value a)))}
+  deriving (Eq, Monoid, Ord, NFData, Show, Typeable)
+newtype instance Required n (Enumeration a) = RE {unRE :: Field n (RequiredField (Always (Enumeration a)))}
+  deriving (Eq, Monoid, Ord, NFData, Show, Typeable)
 
 -- | Lists of values.
 type Repeated n a = Field n (RepeatedField [a])

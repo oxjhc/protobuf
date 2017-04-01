@@ -1,10 +1,10 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE StandaloneDeriving         #-}
 
 module Data.ProtocolBuffers.Wire
   ( Enumeration(..)
@@ -25,23 +25,23 @@ module Data.ProtocolBuffers.Wire
   , zzDecode64
   ) where
 
-import Control.Applicative
-import Data.Bits
-import Data.ByteString (ByteString)
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as LBS
-import Data.Foldable
-import Data.Int
-import Data.Monoid
-import Data.Binary.Get
-import qualified Data.Binary.IEEE754 as F
-import Data.Binary.Builder.Sized hiding (empty)
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
-import Data.Typeable
-import Data.Word
+import           Control.Applicative
+import           Data.Binary.Builder.Sized  hiding (empty)
+import           Data.Binary.Get
+import qualified Data.Binary.IEEE754        as F
+import           Data.Bits
+import           Data.ByteString            (ByteString)
+import qualified Data.ByteString            as B
+import qualified Data.ByteString.Lazy       as LBS
+import           Data.Foldable
+import           Data.Int
+import           Data.Monoid
+import qualified Data.Text                  as T
+import qualified Data.Text.Encoding         as T
+import           Data.Typeable
+import           Data.Word
 
-import Data.ProtocolBuffers.Types
+import           Data.ProtocolBuffers.Types
 
 -- |
 -- Field identifiers
@@ -179,28 +179,28 @@ instance EncodeWire Int32 where
 
 instance DecodeWire Int32 where
   decodeWire (VarintField  _ val) = pure $ fromIntegral val
-  decodeWire _ = empty
+  decodeWire _                    = empty
 
 instance EncodeWire Int64 where
   encodeWire t val = putWireTag t 0 <> putVarSInt val
 
 instance DecodeWire Int64 where
   decodeWire (VarintField  _ val) = pure $ fromIntegral val
-  decodeWire _ = empty
+  decodeWire _                    = empty
 
 instance EncodeWire Word32 where
   encodeWire t val = putWireTag t 0 <> putVarUInt val
 
 instance DecodeWire Word32 where
   decodeWire (VarintField  _ val) = pure $ fromIntegral val
-  decodeWire _ = empty
+  decodeWire _                    = empty
 
 instance EncodeWire Word64 where
   encodeWire t val = putWireTag t 0 <> putVarUInt val
 
 instance DecodeWire Word64 where
   decodeWire (VarintField  _ val) = pure val
-  decodeWire _ = empty
+  decodeWire _                    = empty
 
 instance EncodeWire (Signed Int32) where
   encodeWire t (Signed val) = putWireTag t 0 <> putVarSInt (zzEncode32 val)
@@ -221,49 +221,49 @@ instance EncodeWire (Fixed Int32) where
 
 instance DecodeWire (Fixed Int32) where
   decodeWire (Fixed32Field _ val) = pure . Fixed $ fromIntegral val
-  decodeWire _ = empty
+  decodeWire _                    = empty
 
 instance EncodeWire (Fixed Int64) where
   encodeWire t (Fixed val) = putWireTag t 1 <> putWord64le (fromIntegral val)
 
 instance DecodeWire (Fixed Int64) where
   decodeWire (Fixed64Field _ val) = pure . Fixed $ fromIntegral val
-  decodeWire _ = empty
+  decodeWire _                    = empty
 
 instance EncodeWire (Fixed Word32) where
   encodeWire t (Fixed val) = putWireTag t 5 <> putWord32le val
 
 instance DecodeWire (Fixed Word32) where
   decodeWire (Fixed32Field _ val) = pure $ Fixed val
-  decodeWire _ = empty
+  decodeWire _                    = empty
 
 instance EncodeWire (Fixed Word64) where
   encodeWire t (Fixed val) = putWireTag t 1 <> putWord64le val
 
 instance DecodeWire (Fixed Word64) where
   decodeWire (Fixed64Field _ val) = pure $ Fixed val
-  decodeWire _ = empty
+  decodeWire _                    = empty
 
 instance EncodeWire Bool where
   encodeWire t val = putWireTag t 0 <> putVarUInt (if val then 1 else (0 :: Int32))
 
 instance DecodeWire Bool where
   decodeWire (VarintField _ val) = pure $ val /= 0
-  decodeWire _ = empty
+  decodeWire _                   = empty
 
 instance EncodeWire Float where
   encodeWire t val = putWireTag t 5 <> putFloat32le val
 
 instance DecodeWire Float where
   decodeWire (Fixed32Field _ val) = pure $ F.wordToFloat val
-  decodeWire _ = empty
+  decodeWire _                    = empty
 
 instance EncodeWire Double where
   encodeWire t val = putWireTag t 1 <> putFloat64le val
 
 instance DecodeWire Double where
   decodeWire (Fixed64Field _ val) = pure $ F.wordToDouble val
-  decodeWire _ = empty
+  decodeWire _                    = empty
 
 instance EncodeWire Builder where
   encodeWire t val = putWireTag t 2 <> putVarUInt (size val) <> val
@@ -276,7 +276,7 @@ instance EncodeWire ByteString where
 
 instance DecodeWire ByteString where
   decodeWire (DelimitedField _ bs) = pure bs
-  decodeWire _ = empty
+  decodeWire _                     = empty
 
 instance EncodeWire String where
   encodeWire t = encodeWire t . T.pack
@@ -441,6 +441,11 @@ instance Enum a => DecodeWire (PackedList (Enumeration a)) where
 
 instance (Foldable f, Enum a) => EncodeWire (f (Enumeration a)) where
   encodeWire t = foldMap (encodeWire t . c . runEnumeration) where
+    c :: a -> Int32
+    c = fromIntegral . fromEnum
+
+instance Enum a => EncodeWire (Enumeration a) where
+  encodeWire t = encodeWire t . c . runEnumeration where
     c :: a -> Int32
     c = fromIntegral . fromEnum
 

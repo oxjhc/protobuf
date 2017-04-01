@@ -42,7 +42,7 @@ library
     Data.ProtocolBuffers.Decode
     Data.ProtocolBuffers.Encode
     Data.ProtocolBuffers.Message
-    -- Data.ProtocolBuffers.Ppr
+    Data.ProtocolBuffers.Ppr
     Data.ProtocolBuffers.Types
     Data.ProtocolBuffers.Wire
   build-depends:
@@ -53,11 +53,9 @@ library
     data-binary-ieee754        >= 0.4,
     deepseq                    >= 1.1,
     mtl                        == 2.*,
-    -- pretty,
+    pretty                     >= 1.1,
     text                       >= 0.10,
     unordered-containers       >= 0.2
-  ghc-options:
-    -Wall
 
 -- executable protoc-gen-hs
   -- default-language:

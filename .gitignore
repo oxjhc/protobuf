@@ -10,3 +10,4 @@ cabal.sandbox.config
 .*.swp
 .shake.database
 .virthualenv
+.stack-work/

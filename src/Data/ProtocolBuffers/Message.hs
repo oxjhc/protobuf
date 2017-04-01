@@ -1,34 +1,36 @@
-{-# LANGUAGE DeriveFoldable #-}
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DeriveTraversable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DeriveFoldable             #-}
+{-# LANGUAGE DeriveFunctor              #-}
+{-# LANGUAGE DeriveTraversable          #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE TypeSynonymInstances       #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 module Data.ProtocolBuffers.Message
   ( Message(..)
   , GMessageMonoid
   ) where
 
-import Control.Applicative
-import Control.DeepSeq (NFData(..))
-import Data.Foldable
-import Data.Monoid
-import Data.Binary.Get
-import Data.Traversable
+import           Control.Applicative
+import           Control.DeepSeq             (NFData (..))
+import           Data.Bifunctor
+import           Data.Binary.Get
+import           Data.Foldable
+import           Data.Monoid
+import           Data.Traversable
 
-import GHC.Generics
-import GHC.TypeLits
+import           GHC.Generics
+import           GHC.TypeLits
 
-import Data.ProtocolBuffers.Decode
-import Data.ProtocolBuffers.Encode
-import Data.ProtocolBuffers.Types
-import Data.ProtocolBuffers.Wire
-import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Lazy        as LBS
+import           Data.ProtocolBuffers.Decode
+import           Data.ProtocolBuffers.Encode
+import           Data.ProtocolBuffers.Types
+import           Data.ProtocolBuffers.Wire
 
 -- |
 -- The way to embed a message within another message.
@@ -152,27 +154,47 @@ instance NFData c => GMessageNFData (K1 i c) where
 instance GMessageNFData U1 where
   grnf U1 = ()
 
-type instance Optional n (Message a) = Field n (OptionalField (Maybe (Message a)))
-type instance Required n (Message a) = Field n (RequiredField (Always (Message a)))
+newtype instance Optional n (Message a) = OM {unOM :: Field n (OptionalField (Last (Message a)))}
+  deriving (Eq, Monoid, Ord, Show)
+newtype instance Required n (Message a) = RM {unRM :: Field n (RequiredField (Always (Message a)))}
+  deriving (Eq, Monoid, Ord, Show)
 
 instance (Foldable f, Encode m) => EncodeWire (f (Message m)) where
   encodeWire t = foldMap (encodeWire t . encode . runMessage)
+
+instance (Encode m, KnownNat n) => GEncode (K1 i (Required n (Message m))) where
+  gencode = gencode . first unRM
+
+instance (Encode m, KnownNat n) => GEncode (K1 i (Optional n (Message m))) where
+  gencode = gencode . first unOM
+
 
 instance Decode m => DecodeWire (Message m) where
   decodeWire (DelimitedField _ bs) = pure $ Message $ runGet decodeMessage $ LBS.fromStrict bs
   decodeWire _ = empty
 
+deriving instance Decode m => DecodeWire (Always (Message m))
+deriving instance Decode m => DecodeWire (Last (Message m))
+instance Decode m => DecodeWire (Maybe (Message m)) where
+  decodeWire = fmap Just . decodeWire
+
+instance (Decode m, KnownNat n) => GDecode (K1 i (Required n (Message m))) where
+  gdecode msg = first RM <$> fieldDecode Required msg
+
+instance (Decode m, KnownNat n) => GDecode (K1 i (Optional n (Message m))) where
+  gdecode msg = first OM <$> fieldDecode Optional msg <|> pure (K1 mempty)
+
 -- | Iso: @ 'FieldType' ('Required' n ('Message' a)) = a @
-instance HasField (Field n (RequiredField (Always (Message a)))) where
-  type FieldType (Field n (RequiredField (Always (Message a)))) = a
-  getField = runMessage . runAlways. runRequired . runField
-  putField = Field . Required . Always . Message
+instance HasField (Required n (Message a)) where
+  type FieldType (Required n (Message a)) = a
+  getField = runMessage . runAlways. runRequired . runField . unRM
+  putField = RM . Field . Required . Always . Message
 
 -- | Iso: @ 'FieldType' ('Optional' n ('Message' a)) = 'Maybe' a @
-instance HasField (Field n (OptionalField (Maybe (Message a)))) where
-  type FieldType (Field n (OptionalField (Maybe (Message a)))) = Maybe a
-  getField = fmap runMessage . runOptional . runField
-  putField = Field . Optional . fmap Message
+instance HasField (Optional n (Message a)) where
+  type FieldType (Optional n (Message a)) = Maybe a
+  getField = fmap runMessage . getLast . runOptional . runField . unOM
+  putField = OM . Field . Optional . Last . fmap Message
 
 -- | Iso: @ 'FieldType' ('Repeated' n ('Message' a)) = [a] @
 instance HasField (Field n (RepeatedField [Message a])) where

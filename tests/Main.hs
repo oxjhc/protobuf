@@ -1,49 +1,49 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TypeSynonymInstances       #-}
+{-# LANGUAGE UndecidableInstances       #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-import Test.QuickCheck
-import Test.QuickCheck.Property
-import Test.Tasty
-import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck
+import           Test.QuickCheck
+import           Test.QuickCheck.Property
+import           Test.Tasty
+import           Test.Tasty.HUnit
+import           Test.Tasty.QuickCheck
 
-import GHC.Generics
-import GHC.TypeLits
+import           GHC.Generics
+import           GHC.TypeLits
 
-import Control.Applicative
-import Control.Exception (SomeException, evaluate, try)
-import Control.Monad
-import qualified Data.ByteString as B
-import Data.ByteString.Char8 ()
-import Data.ProtocolBuffers as Pb
-import Data.ProtocolBuffers.Internal as Pb
-import Data.ProtocolBuffers.Orphans ()
-import Data.HashMap.Strict (HashMap)
-import qualified Data.HashMap.Strict as HashMap
-import Data.Hex
-import Data.Int
-import Data.IntSet (IntSet)
-import qualified Data.IntSet as IntSet
-import Data.Monoid
-import Data.Binary.Get (Get, runGet)
-import Data.Binary.Builder.Sized (Builder, toLazyByteString)
-import Data.Proxy
-import Data.Text (Text)
-import Data.Typeable
-import Data.Word
-import qualified Data.ByteString.Lazy as LBS
-import Data.Binary.Get (runGetOrFail)
+import           Control.Applicative
+import           Control.Exception             (SomeException, evaluate, try)
+import           Control.Monad
+import           Data.Binary.Builder.Sized     (Builder, toLazyByteString)
+import           Data.Binary.Get               (Get, runGet)
+import           Data.Binary.Get               (runGetOrFail)
+import qualified Data.ByteString               as B
+import           Data.ByteString.Char8         ()
+import qualified Data.ByteString.Lazy          as LBS
+import           Data.HashMap.Strict           (HashMap)
+import qualified Data.HashMap.Strict           as HashMap
+import           Data.Hex
+import           Data.Int
+import           Data.IntSet                   (IntSet)
+import qualified Data.IntSet                   as IntSet
+import           Data.Monoid
+import           Data.ProtocolBuffers          as Pb
+import           Data.ProtocolBuffers.Internal as Pb
+import           Data.ProtocolBuffers.Orphans  ()
+import           Data.Proxy
+import           Data.Text                     (Text)
+import           Data.Typeable
+import           Data.Word
 
 main :: IO ()
 main = defaultMain tests
@@ -136,11 +136,11 @@ repeatedSingleValueTests = primitiveTests prop_repeated
 tagsOutOfRangeTests :: [TestTree]
 tagsOutOfRangeTests = primitiveTests prop_req_out_of_range
 
-instance Arbitrary a => Arbitrary (Field n (RequiredField (Always (Value a)))) where
+instance Arbitrary a => Arbitrary (Required n (Value a)) where
   arbitrary = putField <$> arbitrary
   shrink = fmap putField . shrink . getField
 
-instance Arbitrary a => Arbitrary (Field n (OptionalField (Last (Value a)))) where
+instance Arbitrary a => Arbitrary (Optional n (Value a)) where
   arbitrary = putField <$> arbitrary
   shrink = fmap putField . shrink . getField
 

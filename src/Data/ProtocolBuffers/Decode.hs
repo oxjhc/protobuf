@@ -1,10 +1,10 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE DefaultSignatures   #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE FlexibleInstances   #-}
+{-# LANGUAGE KindSignatures      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeOperators       #-}
 
 module Data.ProtocolBuffers.Decode
   ( Decode(..)
@@ -14,24 +14,25 @@ module Data.ProtocolBuffers.Decode
   , fieldDecode
   ) where
 
-import Control.Applicative
-import Control.Monad
-import Data.Foldable
-import Data.HashMap.Strict (HashMap)
-import qualified Data.HashMap.Strict as HashMap
-import Data.Int (Int32, Int64)
-import Data.Maybe (fromMaybe)
-import Data.Monoid
-import Data.Proxy
-import Data.Binary.Get
-import Data.Traversable (traverse)
+import           Control.Applicative
+import           Control.Monad
+import           Data.Bifunctor
+import           Data.Binary.Get
+import           Data.Foldable
+import           Data.HashMap.Strict        (HashMap)
+import qualified Data.HashMap.Strict        as HashMap
+import           Data.Int                   (Int32, Int64)
+import           Data.Maybe                 (fromMaybe)
+import           Data.Monoid
+import           Data.Proxy
+import           Data.Traversable           (traverse)
 
-import GHC.Generics
-import GHC.TypeLits
+import           GHC.Generics
+import           GHC.TypeLits
 
-import Data.ProtocolBuffers.Types
-import Data.ProtocolBuffers.Wire
-import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Lazy       as LBS
+import           Data.ProtocolBuffers.Types
+import           Data.ProtocolBuffers.Wire
 
 -- |
 -- Decode a Protocol Buffers message.
@@ -91,22 +92,22 @@ fieldDecode c msg =
     Just val -> K1 . Field . c <$> foldMapM decodeWire val
     Nothing  -> empty
 
-instance (DecodeWire a, KnownNat n) => GDecode (K1 i (Field n (OptionalField (Last (Value a))))) where
-  gdecode msg = fieldDecode Optional msg <|> pure (K1 mempty)
+instance (DecodeWire a, KnownNat n) => GDecode (K1 i (Optional n (Value a))) where
+  gdecode msg = first OV <$> fieldDecode Optional msg <|> pure (K1 mempty)
 
-instance (Enum a, KnownNat n) => GDecode (K1 i (Field n (RequiredField (Always (Enumeration a))))) where
+instance (Enum a, KnownNat n) => GDecode (K1 i (Required n (Enumeration a))) where
   gdecode msg = do
     K1 mx <- fieldDecode Required msg
     case mx :: Field n (RequiredField (Always (Value Int32))) of
       Field (Required (Always (Value x))) ->
-        return . K1 . Field . Required . Always . Enumeration . toEnum $ fromIntegral x
+        return . K1 . RE . Field . Required . Always . Enumeration . toEnum $ fromIntegral x
 
-instance (Enum a, KnownNat n) => GDecode (K1 i (Field n (OptionalField (Last (Enumeration a))))) where
+instance (Enum a, KnownNat n) => GDecode (K1 i (Optional n (Enumeration a))) where
   gdecode msg = do
     K1 mx <- fieldDecode Optional msg <|> pure (K1 mempty)
     case mx :: Field n (OptionalField (Last (Value Int32))) of
       Field (Optional (Last (Just (Value x)))) ->
-        return . K1 . Field . Optional . Last . Just . Enumeration . toEnum $ fromIntegral x
+        return . K1 . OE . Field . Optional . Last . Just . Enumeration . toEnum $ fromIntegral x
       _ -> pure (K1 mempty)
 
 instance (DecodeWire a, KnownNat n) => GDecode (K1 i (Repeated n a)) where
@@ -116,8 +117,8 @@ instance (DecodeWire a, KnownNat n) => GDecode (K1 i (Repeated n a)) where
       Just val -> K1 . Field . Repeated <$> traverse decodeWire val
       Nothing  -> pure $ K1 mempty
 
-instance (DecodeWire a, KnownNat n) => GDecode (K1 i (Field n (RequiredField (Always (Value a))))) where
-  gdecode msg = fieldDecode Required msg
+instance (DecodeWire a, KnownNat n) => GDecode (K1 i (Required n (Value a))) where
+  gdecode msg = first RV <$> fieldDecode Required msg
 
 instance (DecodeWire (PackedList a), KnownNat n) => GDecode (K1 i (Packed n a)) where
   gdecode msg = fieldDecode PackedField msg <|> pure (K1 mempty)

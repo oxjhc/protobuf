@@ -156,9 +156,13 @@ module Data.ProtocolBuffers
   --
   , Signed(..)
   , Fixed(..)
+  , showProto
+  , schemaProto
   ) where
 
-import Data.ProtocolBuffers.Decode
-import Data.ProtocolBuffers.Message
-import Data.ProtocolBuffers.Encode
-import Data.ProtocolBuffers.Types
+import           Data.ProtocolBuffers.Decode
+import           Data.ProtocolBuffers.Encode
+import           Data.ProtocolBuffers.Message
+import           Data.ProtocolBuffers.Schema
+import           Data.ProtocolBuffers.Show
+import           Data.ProtocolBuffers.Types

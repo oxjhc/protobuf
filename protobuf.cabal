@@ -42,7 +42,8 @@ library
     Data.ProtocolBuffers.Decode
     Data.ProtocolBuffers.Encode
     Data.ProtocolBuffers.Message
-    Data.ProtocolBuffers.Ppr
+    Data.ProtocolBuffers.Schema
+    Data.ProtocolBuffers.Show
     Data.ProtocolBuffers.Types
     Data.ProtocolBuffers.Wire
   build-depends:
@@ -58,24 +59,25 @@ library
     unordered-containers       >= 0.2
 
 -- executable protoc-gen-hs
-  -- default-language:
-    -- Haskell2010
-  -- hs-source-dirs:
-    -- plugin
-  -- main-is:
-    -- Main.hs
-  -- build-depends:
-    -- base                       >= 4.7 && < 5,
-    -- bytestring,
-    -- cereal,
-    -- ghc-prim,
-    -- haskell-src-exts,
-    -- mtl,
-    -- protobuf,
-    -- text,
-    -- unordered-containers
-  -- ghc-options:
-    -- -Wall
+--   default-language:
+--     Haskell2010
+--   hs-source-dirs:
+--     plugin
+--   main-is:
+--     Main.hs
+--   build-depends:
+--     base                       >= 4.7 && < 5,
+--     bytestring,
+--     binary,
+--     cereal,
+--     ghc-prim,
+--     haskell-src-exts           == 1.17.1,
+--     mtl,
+--     protobuf,
+--     text,
+--    unordered-containers
+--   ghc-options:
+--     -Wall
 
 test-suite protobuf-test
   default-language:

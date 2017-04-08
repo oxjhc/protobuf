@@ -16,6 +16,7 @@ module Data.ProtocolBuffers.Schema
   , makeSelName
   ) where
 
+import           Data.ByteString               (ByteString)
 import           Data.Int
 import           Data.Monoid                   (Last)
 import           Data.ProtocolBuffers.Internal
@@ -127,6 +128,9 @@ instance ProtoTypeName Bool where
   protoTypeName = text "bool"
 
 instance ProtoTypeName Text where
+  protoTypeName = text "string"
+
+instance ProtoTypeName ByteString where
   protoTypeName = text "bytes"
 
 instance ProtoTypeName a => ProtoTypeName (Value a) where

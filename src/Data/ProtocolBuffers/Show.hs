@@ -17,6 +17,7 @@
 
 module Data.ProtocolBuffers.Show where
 
+import           Data.ByteString               (ByteString)
 import           Data.Int
 import           Data.Monoid                   (Last)
 import           Data.ProtocolBuffers.Internal
@@ -108,6 +109,7 @@ type family IsBase a :: Bool where
   IsBase (Fixed Word64) = True
   IsBase Bool = True
   IsBase Text = True
+  IsBase ByteString = True
   IsBase _ = False
 
 data LevelTag = Bottom | Mid | Top | Fail
